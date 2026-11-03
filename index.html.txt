@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的線上題庫測驗</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background-color: #f9f9f9; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        button { display: block; width: 100%; margin: 10px 0; padding: 10px; font-size: 16px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: #fff; text-align: left; }
+        button:hover { background: #f0f0f0; }
+        .correct { background: #d4edda !important; border-color: #c3e6cb; }
+        .wrong { background: #f8d7da !important; border-color: #f5c6cb; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 id="question-title">載入題庫中...</h2>
+    <div id="options-container"></div>
+    <p id="result" style="font-weight: bold; margin-top: 15px;"></p>
+</div>
+
+<script>
+    let questions = [];
+    let currentIndex = 0;
+
+    // 讀取同專案底下的 questions.json
+    fetch('questions.json')
+        .then(response => response.json())
+        .then(data => {
+            questions = data;
+            if (questions.length > 0) {
+                showQuestion();
+            } else {
+                document.getElementById('question-title').innerText = "題庫中目前沒有題目。";
+            }
+        })
+        .catch(error => {
+            console.error('讀取題庫失敗:', error);
+            document.getElementById('question-title').innerText = "載入題庫失敗，請確認 questions.json 格式是否正確。";
+        });
+
+    function showQuestion() {
+        const q = questions[currentIndex];
+        document.getElementById('question-title').innerText = `第 ${currentIndex + 1} 題： ${q.question}`;
+        document.getElementById('result').innerText = "";
+        
+        const container = document.getElementById('options-container');
+        container.innerHTML = "";
+
+        q.options.forEach((option, index) => {
+            const btn = document.createElement('button');
+            btn.innerText = `${index + 1}. ${option}`;
+            btn.onclick = () => checkAnswer(index, q.answer, btn);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, correct, btn) {
+        const buttons = document.querySelectorAll('#options-container button');
+        buttons.forEach(b => b.disabled = true); // 鎖定按鈕
+
+        if (selected === correct) {
+            btn.classList.add('correct');
+            document.getElementById('result').innerText = "回答正確！";
+            document.getElementById('result').style.color = "green";
+        } else {
+            btn.classList.add('wrong');
+            buttons[correct].classList.add('correct'); // 顯示正確答案
+            document.getElementById('result').innerText = "回答錯誤！";
+            document.getElementById('result').style.color = "red";
+        }
+
+        // 2 秒後自動跳下一題
+        setTimeout(() => {
+            currentIndex++;
+            if (currentIndex < questions.length) {
+                showQuestion();
+            } else {
+                document.getElementById('question-title').innerText = "測驗已全部完成！";
+                document.getElementById('options-container').innerHTML = "";
+                document.getElementById('result').innerText = "恭喜你完成所有題目！";
+            }
+        }, 2000);
+    }
+</script>
+
+</body>
+</html>
