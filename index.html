@@ -3,47 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的線上題庫測驗</title>
+    <title>專業線上題庫測驗系統</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background-color: #f9f9f9; color: #333; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        button { display: block; width: 100%; margin: 10px 0; padding: 10px; font-size: 16px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: #fff; text-align: left; }
-        button:hover { background: #f0f0f0; }
-        .correct { background: #d4edda !important; border-color: #c3e6cb; }
-        .wrong { background: #f8d7da !important; border-color: #f5c6cb; }
+        body { font-family: Arial, sans-serif; max-width: 650px; margin: 40px auto; padding: 20px; background-color: #f4f6f9; color: #333; }
+        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        h2 { color: #2c3e50; margin-top: 0; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        select, input[type="number"] { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .btn { display: block; width: 100%; padding: 12px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 6px; background: #3498db; color: white; transition: background 0.2s; }
+        .btn:hover { background: #2980b9; }
+        
+        /* 測驗區塊樣式 */
+        button.option-btn { display: block; width: 100%; margin: 10px 0; padding: 12px; font-size: 16px; cursor: pointer; border: 1px solid #ddd; border-radius: 6px; background: #fff; text-align: left; transition: all 0.2s; }
+        button.option-btn:hover { background: #f0f4f8; }
+        .correct { background: #d4edda !important; border-color: #c3e6cb; color: #155724; font-weight: bold; }
+        .wrong { background: #f8d7da !important; border-color: #f5c6cb; color: #721c24; }
+        .hidden { display: none; }
+        .stats { font-size: 14px; color: #7f8c8d; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2 id="question-title">載入題庫中...</h2>
-    <div id="options-container"></div>
-    <p id="result" style="font-weight: bold; margin-top: 15px;"></p>
+    <!-- 1. 設定首頁選單區塊 -->
+    <div id="setup-screen">
+        <h2>🚀 線上題庫測驗系統</h2>
+        <p style="color: #666; margin-bottom: 20px;">請先選擇您的測驗模式與設定，再開始挑戰！</p>
+        
+        <div class="form-group">
+            <label for="mode-select">選擇測驗模式：</label>
+            <select id="mode-select">
+                <option value="sequential">依順序完整練習（從頭到尾）</option>
+                <option value="random">隨機抽題測驗</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="count-group">
+            <label for="question-count">出題數量：</label>
+            <input type="number" id="question-count" value="20" min="1" max="500">
+            <small style="color: #888;">若選擇隨機抽題，可自訂要抽幾題（若題數不足會自動以全部題數為主）。</small>
+        </div>
+
+        <button class="btn" onclick="startQuiz()">開始測驗</button>
+    </div>
+
+    <!-- 2. 實際測驗進行區塊 -->
+    <div id="quiz-screen" class="hidden">
+        <div class="stats" id="quiz-stats">進度：第 1 題 / 共 0 題</div>
+        <h2 id="question-title">載入中...</h2>
+        <div id="options-container"></div>
+        <p id="result" style="font-weight: bold; margin-top: 15px;"></p>
+    </div>
+
+    <!-- 3. 測驗結算結語區塊 -->
+    <div id="result-screen" class="hidden">
+        <h2>🎉 測驗已全部完成！</h2>
+        <p id="final-score" style="font-size: 18px; margin: 20px 0;"></p>
+        <button class="btn" onclick="location.reload()">返回首頁重新測驗</button>
+    </div>
 </div>
 
 <script>
-    let questions = [];
+    let allQuestions = [];
+    let activeQuestions = [];
     let currentIndex = 0;
+    let score = 0;
 
-    // 讀取同專案底下的 questions.json
+    // 載入同專案底下的 questions.json
     fetch('questions.json')
         .then(response => response.json())
         .then(data => {
-            questions = data;
-            if (questions.length > 0) {
-                showQuestion();
-            } else {
-                document.getElementById('question-title').innerText = "題庫中目前沒有題目。";
-            }
+            allQuestions = data;
         })
         .catch(error => {
             console.error('讀取題庫失敗:', error);
-            document.getElementById('question-title').innerText = "載入題庫失敗，請確認 questions.json 格式是否正確。";
+            alert('載入題庫失敗，請確認 questions.json 是否存在與格式正確。');
         });
 
+    function startQuiz() {
+        if (allQuestions.length === 0) {
+            alert('題庫尚在載入中或沒有題目，請稍後再試。');
+            return;
+        }
+
+        const mode = document.getElementById('mode-select').value;
+        const countInput = parseInt(document.getElementById('question-count').value) || 20;
+
+        // 複製一份題庫避免動到原始陣列
+        let questionsCopy = [...allQuestions];
+
+        if (mode === 'random') {
+            // 隨機打亂題庫順序
+            questionsCopy.sort(() => Math.random() - 0.5);
+            // 限制題數
+            activeQuestions = questionsCopy.slice(0, countInput);
+        } else {
+            // 順序模式
+            activeQuestions = questionsCopy;
+        }
+
+        currentIndex = 0;
+        score = 0;
+
+        // 切換畫面顯示
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+
+        showQuestion();
+    }
+
     function showQuestion() {
-        const q = questions[currentIndex];
-        document.getElementById('question-title').innerText = `第 ${currentIndex + 1} 題： ${q.question}`;
+        const q = activeQuestions[currentIndex];
+        document.getElementById('quiz-stats').innerText = `進度：第 ${currentIndex + 1} 題 / 共 ${activeQuestions.length} 題`;
+        document.getElementById('question-title').innerText = q.question;
         document.getElementById('result').innerText = "";
         
         const container = document.getElementById('options-container');
@@ -51,41 +124,45 @@
 
         q.options.forEach((option, index) => {
             const btn = document.createElement('button');
+            btn.className = 'option-btn';
             btn.innerText = `${index + 1}. ${option}`;
-            btn.onclick = () => checkAnswer(index, q.answer, btn);
+            btn.onclick = () => checkAnswer(index, q.answer, btn, q.options);
             container.appendChild(btn);
         });
     }
 
-    function checkAnswer(selected, correct, btn) {
+    function checkAnswer(selected, correct, btn, options) {
         const buttons = document.querySelectorAll('#options-container button');
         buttons.forEach(b => b.disabled = true); // 鎖定按鈕
 
+        const resultEl = document.getElementById('result');
+
         if (selected === correct) {
             btn.classList.add('correct');
-            document.getElementById('result').innerText = "回答正確！";
-            document.getElementById('result').style.color = "green";
+            resultEl.innerText = "回答正確！";
+            resultEl.style.color = "#27ae60";
+            score++;
         } else {
             btn.classList.add('wrong');
             buttons[correct].classList.add('correct'); // 顯示正確答案
-            document.getElementById('result').innerText = "回答錯誤！";
-            document.getElementById('result').style.color = "red";
+            resultEl.innerHTML = `回答錯誤！<br>正確答案是：<strong>${correct + 1}. ${options[correct]}</strong>`;
+            resultEl.style.color = "#c0392b";
         }
 
-        // 2 秒後自動跳下一題
+        // 3 秒後自動跳下一題或結算
         setTimeout(() => {
             currentIndex++;
-            if (currentIndex < questions.length) {
+            if (currentIndex < activeQuestions.length) {
                 showQuestion();
             } else {
-                document.getElementById('question-title').innerText = "測驗已全部完成！";
-                document.getElementById('options-container').innerHTML = "";
-                document.getElementById('result').innerText = "恭喜你完成所有題目！";
+                // 顯示結算畫面
+                document.getElementById('quiz-screen').classList.add('hidden');
+                document.getElementById('result-screen').classList.remove('hidden');
+                document.getElementById('final-score').innerHTML = `你總共完成 ${activeQuestions.length} 道題目，<br>答對 <strong>${score}</strong> 題，正確率 <strong>${Math.round((score / activeQuestions.length) * 100)}%</strong>。`;
             }
-        }, 2000);
+        }, 3000);
     }
 </script>
 
 </body>
 </html>
-
