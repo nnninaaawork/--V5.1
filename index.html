@@ -14,12 +14,12 @@
         .btn { display: block; width: 100%; padding: 12px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 6px; background: #3498db; color: white; transition: background 0.2s; }
         .btn:hover { background: #2980b9; }
         
-        /* 測驗區塊樣式 */
         button.option-btn { display: block; width: 100%; margin: 10px 0; padding: 12px; font-size: 16px; cursor: pointer; border: 1px solid #ddd; border-radius: 6px; background: #fff; text-align: left; transition: all 0.2s; }
         button.option-btn:hover { background: #f0f4f8; }
         .correct { background: #d4edda !important; border-color: #c3e6cb; color: #155724; font-weight: bold; }
         .wrong { background: #f8d7da !important; border-color: #f5c6cb; color: #721c24; }
         .hidden { display: none; }
+        .chapter-tag { display: inline-block; background: #e8f4fd; color: #2980b9; padding: 4px 10px; border-radius: 4px; font-size: 13px; font-weight: bold; margin-bottom: 10px; }
         .stats { font-size: 14px; color: #7f8c8d; margin-bottom: 15px; }
     </style>
 </head>
@@ -29,20 +29,26 @@
     <!-- 1. 設定首頁選單區塊 -->
     <div id="setup-screen">
         <h2>🚀 線上題庫測驗系統</h2>
-        <p style="color: #666; margin-bottom: 20px;">請先選擇您的測驗模式與設定，再開始挑戰！</p>
+        <p style="color: #666; margin-bottom: 20px;">請選擇分類與測驗模式：</p>
         
+        <div class="form-group">
+            <label for="chapter-select">選擇測驗分類（章節）：</label>
+            <select id="chapter-select">
+                <option value="all">全分類混合測驗</option>
+            </select>
+        </div>
+
         <div class="form-group">
             <label for="mode-select">選擇測驗模式：</label>
             <select id="mode-select">
-                <option value="sequential">依順序完整練習（從頭到尾）</option>
+                <option value="sequential">依順序完整練習</option>
                 <option value="random">隨機抽題測驗</option>
             </select>
         </div>
 
         <div class="form-group" id="count-group">
-            <label for="question-count">出題數量：</label>
+            <label for="question-count">出題數量（若選隨機）：</label>
             <input type="number" id="question-count" value="20" min="1" max="500">
-            <small style="color: #888;">若選擇隨機抽題，可自訂要抽幾題（若題數不足會自動以全部題數為主）。</small>
         </div>
 
         <button class="btn" onclick="startQuiz()">開始測驗</button>
@@ -51,12 +57,13 @@
     <!-- 2. 實際測驗進行區塊 -->
     <div id="quiz-screen" class="hidden">
         <div class="stats" id="quiz-stats">進度：第 1 題 / 共 0 題</div>
+        <div id="chapter-badge" class="chapter-tag">分類名稱</div>
         <h2 id="question-title">載入中...</h2>
         <div id="options-container"></div>
         <p id="result" style="font-weight: bold; margin-top: 15px;"></p>
     </div>
 
-    <!-- 3. 測驗結算結語區塊 -->
+    <!-- 3. 測驗結算區塊 -->
     <div id="result-screen" class="hidden">
         <h2>🎉 測驗已全部完成！</h2>
         <p id="final-score" style="font-size: 18px; margin: 20px 0;"></p>
@@ -75,38 +82,56 @@
         .then(response => response.json())
         .then(data => {
             allQuestions = data;
+            initChapterSelect();
         })
         .catch(error => {
             console.error('讀取題庫失敗:', error);
             alert('載入題庫失敗，請確認 questions.json 是否存在與格式正確。');
         });
 
+    // 自動抓取 JSON 中的所有不重複 category，填入首頁下拉選單
+    function initChapterSelect() {
+        const select = document.getElementById('chapter-select');
+        const categories = [...new Set(allQuestions.map(q => q.category || q.chapter || "預設分類"))];
+        
+        categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.innerText = cat;
+            select.appendChild(opt);
+        });
+    }
+
     function startQuiz() {
         if (allQuestions.length === 0) {
-            alert('題庫尚在載入中或沒有題目，請稍後再試。');
+            alert('題庫尚在載入中或沒有題目。');
             return;
         }
 
+        const selectedCategory = document.getElementById('chapter-select').value;
         const mode = document.getElementById('mode-select').value;
         const countInput = parseInt(document.getElementById('question-count').value) || 20;
 
-        // 複製一份題庫避免動到原始陣列
-        let questionsCopy = [...allQuestions];
+        // 根據 category 進行篩選
+        let filtered = selectedCategory === 'all' 
+            ? [...allQuestions] 
+            : allQuestions.filter(q => (q.category || q.chapter || "預設分類") === selectedCategory);
+
+        if (filtered.length === 0) {
+            alert('該分類目前沒有題目！');
+            return;
+        }
 
         if (mode === 'random') {
-            // 隨機打亂題庫順序
-            questionsCopy.sort(() => Math.random() - 0.5);
-            // 限制題數
-            activeQuestions = questionsCopy.slice(0, countInput);
+            filtered.sort(() => Math.random() - 0.5);
+            activeQuestions = filtered.slice(0, countInput);
         } else {
-            // 順序模式
-            activeQuestions = questionsCopy;
+            activeQuestions = filtered;
         }
 
         currentIndex = 0;
         score = 0;
 
-        // 切換畫面顯示
         document.getElementById('setup-screen').classList.add('hidden');
         document.getElementById('quiz-screen').classList.remove('hidden');
 
@@ -115,7 +140,13 @@
 
     function showQuestion() {
         const q = activeQuestions[currentIndex];
-        document.getElementById('quiz-stats').innerText = `進度：第 ${currentIndex + 1} 題 / 共 ${activeQuestions.length} 題`;
+        document.getElementById('quiz-stats').innerText = `總進度：第 ${currentIndex + 1} 題 / 共 ${activeQuestions.length} 題`;
+        
+        // 顯示該題來自哪個 category 與原本的 id
+        const categoryName = q.category || q.chapter || "預設分類";
+        const originalId = q.id ? ` (第 ${q.id} 題)` : "";
+        document.getElementById('chapter-badge').innerText = `📂 ${categoryName}${originalId}`;
+
         document.getElementById('question-title').innerText = q.question;
         document.getElementById('result').innerText = "";
         
@@ -133,7 +164,7 @@
 
     function checkAnswer(selected, correct, btn, options) {
         const buttons = document.querySelectorAll('#options-container button');
-        buttons.forEach(b => b.disabled = true); // 鎖定按鈕
+        buttons.forEach(b => b.disabled = true);
 
         const resultEl = document.getElementById('result');
 
@@ -144,18 +175,16 @@
             score++;
         } else {
             btn.classList.add('wrong');
-            buttons[correct].classList.add('correct'); // 顯示正確答案
+            buttons[correct].classList.add('correct');
             resultEl.innerHTML = `回答錯誤！<br>正確答案是：<strong>${correct + 1}. ${options[correct]}</strong>`;
             resultEl.style.color = "#c0392b";
         }
 
-        // 3 秒後自動跳下一題或結算
         setTimeout(() => {
             currentIndex++;
             if (currentIndex < activeQuestions.length) {
                 showQuestion();
             } else {
-                // 顯示結算畫面
                 document.getElementById('quiz-screen').classList.add('hidden');
                 document.getElementById('result-screen').classList.remove('hidden');
                 document.getElementById('final-score').innerHTML = `你總共完成 ${activeQuestions.length} 道題目，<br>答對 <strong>${score}</strong> 題，正確率 <strong>${Math.round((score / activeQuestions.length) * 100)}%</strong>。`;
