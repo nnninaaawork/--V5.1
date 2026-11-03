@@ -14,6 +14,10 @@
         .btn { display: block; width: 100%; padding: 12px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 6px; background: #3498db; color: white; transition: background 0.2s; }
         .btn:hover { background: #2980b9; }
         
+        /* 返回首頁按鈕專屬樣式 */
+        .btn-secondary { background: #95a5a6; margin-bottom: 15px; }
+        .btn-secondary:hover { background: #7f8c8d; }
+
         button.option-btn { display: block; width: 100%; margin: 10px 0; padding: 12px; font-size: 16px; cursor: pointer; border: 1px solid #ddd; border-radius: 6px; background: #fff; text-align: left; transition: all 0.2s; }
         button.option-btn:hover { background: #f0f4f8; }
         .correct { background: #d4edda !important; border-color: #c3e6cb; color: #155724; font-weight: bold; }
@@ -56,6 +60,9 @@
 
     <!-- 2. 實際測驗進行區塊 -->
     <div id="quiz-screen" class="hidden">
+        <!-- 新增的返回首頁按鈕 -->
+        <button class="btn btn-secondary" onclick="goHome()">🏠 返回首頁重新選擇</button>
+        
         <div class="stats" id="quiz-stats">進度：第 1 題 / 共 0 題</div>
         <div id="chapter-badge" class="chapter-tag">分類名稱</div>
         <h2 id="question-title">載入中...</h2>
@@ -67,7 +74,7 @@
     <div id="result-screen" class="hidden">
         <h2>🎉 測驗已全部完成！</h2>
         <p id="final-score" style="font-size: 18px; margin: 20px 0;"></p>
-        <button class="btn" onclick="location.reload()">返回首頁重新測驗</button>
+        <button class="btn" onclick="goHome()">返回首頁重新測驗</button>
     </div>
 </div>
 
@@ -89,7 +96,6 @@
             alert('載入題庫失敗，請確認 questions.json 是否存在與格式正確。');
         });
 
-    // 自動抓取 JSON 中的所有不重複 category，填入首頁下拉選單
     function initChapterSelect() {
         const select = document.getElementById('chapter-select');
         const categories = [...new Set(allQuestions.map(q => q.category || q.chapter || "預設分類"))];
@@ -112,7 +118,6 @@
         const mode = document.getElementById('mode-select').value;
         const countInput = parseInt(document.getElementById('question-count').value) || 20;
 
-        // 根據 category 進行篩選
         let filtered = selectedCategory === 'all' 
             ? [...allQuestions] 
             : allQuestions.filter(q => (q.category || q.chapter || "預設分類") === selectedCategory);
@@ -133,16 +138,23 @@
         score = 0;
 
         document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.add('hidden');
         document.getElementById('quiz-screen').classList.remove('hidden');
 
         showQuestion();
+    }
+
+    // 返回首頁的函式
+    function goHome() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.add('hidden');
+        document.getElementById('setup-screen').classList.remove('hidden');
     }
 
     function showQuestion() {
         const q = activeQuestions[currentIndex];
         document.getElementById('quiz-stats').innerText = `總進度：第 ${currentIndex + 1} 題 / 共 ${activeQuestions.length} 題`;
         
-        // 顯示該題來自哪個 category 與原本的 id
         const categoryName = q.category || q.chapter || "預設分類";
         const originalId = q.id ? ` (第 ${q.id} 題)` : "";
         document.getElementById('chapter-badge').innerText = `📂 ${categoryName}${originalId}`;
