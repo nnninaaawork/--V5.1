@@ -28,6 +28,11 @@
             margin-top: 0;
         }
 
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -39,7 +44,8 @@
             color: #555;
         }
 
-        select, input[type="number"] {
+        select,
+        input[type="number"] {
             width: 100%;
             padding: 10px;
             font-size: 16px;
@@ -66,6 +72,11 @@
             background: #2980b9;
         }
 
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
         .btn-secondary {
             background: #95a5a6;
             margin-bottom: 15px;
@@ -75,7 +86,7 @@
             background: #7f8c8d;
         }
 
-        button.option-btn {
+        .option-btn {
             display: block;
             width: 100%;
             margin: 10px 0;
@@ -89,8 +100,13 @@
             transition: all 0.2s;
         }
 
-        button.option-btn:hover {
+        .option-btn:hover:not(:disabled) {
             background: #f0f4f8;
+        }
+
+        .option-btn:disabled {
+            cursor: default;
+            opacity: 1;
         }
 
         .correct {
@@ -107,7 +123,7 @@
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
         .chapter-tag {
@@ -126,6 +142,105 @@
             color: #7f8c8d;
             margin-bottom: 15px;
         }
+
+        .star-btn {
+            display: inline-block;
+            margin-bottom: 15px;
+            padding: 8px 14px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 1px solid #f1c40f;
+            border-radius: 6px;
+            background: #fffdf0;
+            color: #b7950b;
+        }
+
+        .star-btn.active {
+            background: #fff1a8;
+            color: #8a6d00;
+            font-weight: bold;
+        }
+
+        .next-btn {
+            margin-top: 20px;
+        }
+
+        .result-message {
+            font-weight: bold;
+            margin-top: 15px;
+            line-height: 1.7;
+        }
+
+        .review-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: #fafafa;
+        }
+
+        .review-card h4 {
+            margin-top: 0;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        .review-option {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background: white;
+            border: 1px solid #eee;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .review-correct {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .review-wrong {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .review-info {
+            margin-top: 12px;
+            line-height: 1.8;
+            font-size: 14px;
+        }
+
+        .review-section {
+            margin-top: 25px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        .empty-message {
+            color: #7f8c8d;
+            background: #f4f6f9;
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .summary {
+            background: #f4f6f9;
+            padding: 15px;
+            border-radius: 8px;
+            line-height: 1.8;
+            margin: 20px 0;
+        }
+
+        .explanation {
+            background: #fff8e1;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            line-height: 1.7;
+        }
     </style>
 </head>
 
@@ -142,7 +257,6 @@
             請依序選擇考試節次、章節及測驗模式：
         </p>
 
-        <!-- 第一層：選擇考試節次 -->
         <div class="form-group">
             <label for="session-select">
                 ① 選擇考試節次：
@@ -154,7 +268,6 @@
             </select>
         </div>
 
-        <!-- 第二層：選擇章節 -->
         <div class="form-group">
             <label for="chapter-select">
                 ② 選擇測驗分類（章節）：
@@ -165,19 +278,17 @@
             </select>
         </div>
 
-        <!-- 第三層：測驗模式 -->
         <div class="form-group">
             <label for="mode-select">
                 ③ 選擇測驗模式：
             </label>
 
-            <select id="mode-select">
+            <select id="mode-select" onchange="toggleCountGroup()">
                 <option value="sequential">依順序完整練習</option>
                 <option value="random">隨機抽題測驗</option>
             </select>
         </div>
 
-        <!-- 隨機抽題數量 -->
         <div class="form-group" id="count-group">
             <label for="question-count">
                 出題數量（若選隨機）：
@@ -210,24 +321,59 @@
 
         <div id="chapter-badge" class="chapter-tag"></div>
 
-        <h2 id="question-title">載入中...</h2>
+        <h2 id="question-title"></h2>
+
+        <!-- 星號收藏 -->
+        <button
+            id="star-btn"
+            class="star-btn"
+            onclick="toggleStar()"
+        >
+            ☆ 收藏這題
+        </button>
 
         <div id="options-container"></div>
 
-        <p id="result" style="font-weight: bold; margin-top: 15px;"></p>
+        <p id="result" class="result-message"></p>
+
+        <!-- 下一題按鈕 -->
+        <button
+            id="next-btn"
+            class="btn next-btn"
+            onclick="nextQuestion()"
+            disabled
+        >
+            請先作答
+        </button>
 
     </div>
 
 
-    <!-- 3. 結算畫面 -->
+    <!-- 3. 結算及複習畫面 -->
     <div id="result-screen" class="hidden">
 
         <h2>🎉 測驗已全部完成！</h2>
 
-        <p id="final-score" style="font-size: 18px; margin: 20px 0;"></p>
+        <div id="final-score" class="summary"></div>
 
-        <button class="btn" onclick="goHome()">
-            返回首頁重新測驗
+        <!-- 錯題複習 -->
+        <div class="review-section">
+            <h3>❌ 錯題複習</h3>
+            <div id="wrong-review"></div>
+        </div>
+
+        <!-- 星號收藏複習 -->
+        <div class="review-section">
+            <h3>⭐ 我的收藏題目</h3>
+            <div id="star-review"></div>
+        </div>
+
+        <button
+            class="btn"
+            onclick="goHome()"
+            style="margin-top: 25px;"
+        >
+            🏠 返回首頁重新測驗
         </button>
 
     </div>
@@ -242,7 +388,17 @@
     let currentIndex = 0;
     let score = 0;
 
-    // 各節考試包含的章節關鍵字
+    // 記錄已作答的題目
+    let answeredQuestions = [];
+
+    // 記錄錯題
+    let wrongQuestions = [];
+
+    // 記錄星號收藏題目
+    let starredQuestions = new Set();
+
+
+    // 考試節次與章節對應
     const sessionChapters = {
         first: [
             "第一章",
@@ -262,15 +418,17 @@
     };
 
 
-    // 載入 questions.json
+    // 載入題庫
     fetch('questions.json')
         .then(response => {
             if (!response.ok) {
                 throw new Error("找不到 questions.json");
             }
+
             return response.json();
         })
         .then(data => {
+
             if (!Array.isArray(data)) {
                 throw new Error("題庫格式必須是 JSON 陣列");
             }
@@ -278,14 +436,31 @@
             allQuestions = data;
 
             initChapterSelect();
+
+            toggleCountGroup();
+
         })
         .catch(error => {
+
             console.error('讀取題庫失敗:', error);
 
             alert(
                 '載入題庫失敗，請確認 questions.json 是否存在與格式正確。'
             );
+
         });
+
+
+    // 隨機模式才顯示出題數量
+    function toggleCountGroup() {
+
+        const mode =
+            document.getElementById('mode-select').value;
+
+        document.getElementById('count-group')
+            .classList.toggle('hidden', mode !== 'random');
+
+    }
 
 
     // 依照考試節次更新章節選單
@@ -299,7 +474,6 @@
 
         const allowedChapters = sessionChapters[session];
 
-        // 只取出目前節次的題目
         const filteredQuestions = allQuestions.filter(q => {
 
             const category = q.category || q.chapter || "";
@@ -310,7 +484,6 @@
 
         });
 
-        // 取得目前節次實際存在的章節
         const categories = [
             ...new Set(
                 filteredQuestions.map(q =>
@@ -319,10 +492,8 @@
             )
         ];
 
-        // 清空原本選單
         select.innerHTML = "";
 
-        // 加入全部章節混合測驗
         const allOption = document.createElement('option');
 
         allOption.value = "all";
@@ -330,7 +501,6 @@
 
         select.appendChild(allOption);
 
-        // 加入各章節選項
         categories.forEach(cat => {
 
             const option = document.createElement('option');
@@ -366,10 +536,9 @@
             document.getElementById('question-count').value
         ) || 20;
 
-        // 取得目前節次允許的章節
         const allowedChapters = sessionChapters[session];
 
-        // 第一步：先依照節次篩選
+        // 先依節次篩選
         let filtered = allQuestions.filter(q => {
 
             const category = q.category || q.chapter || "";
@@ -380,7 +549,7 @@
 
         });
 
-        // 第二步：再依照選擇的章節篩選
+        // 再依章節篩選
         if (selectedCategory !== "all") {
 
             filtered = filtered.filter(q =>
@@ -398,7 +567,6 @@
         // 隨機抽題
         if (mode === 'random') {
 
-            // Fisher-Yates 洗牌，避免排序隨機造成偏差
             filtered = shuffleArray(filtered);
 
             const amount = Math.max(
@@ -410,13 +578,16 @@
 
         } else {
 
-            // 依順序完整練習
             activeQuestions = filtered;
 
         }
 
         currentIndex = 0;
         score = 0;
+
+        answeredQuestions = [];
+        wrongQuestions = [];
+        starredQuestions = new Set();
 
         document.getElementById('setup-screen')
             .classList.add('hidden');
@@ -432,7 +603,7 @@
     }
 
 
-    // 隨機洗牌
+    // Fisher-Yates 隨機洗牌
     function shuffleArray(array) {
 
         const result = [...array];
@@ -441,7 +612,8 @@
 
             const j = Math.floor(Math.random() * (i + 1));
 
-            [result[i], result[j]] = [result[j], result[i]];
+            [result[i], result[j]] =
+                [result[j], result[i]];
 
         }
 
@@ -465,7 +637,7 @@
     }
 
 
-    // 顯示題目
+    // 顯示目前題目
     function showQuestion() {
 
         const q = activeQuestions[currentIndex];
@@ -488,6 +660,15 @@
 
         document.getElementById('result').innerText = "";
 
+        // 重設下一題按鈕
+        const nextBtn = document.getElementById('next-btn');
+
+        nextBtn.disabled = true;
+        nextBtn.innerText = "請先作答";
+
+        // 更新星號狀態
+        updateStarButton();
+
         const container =
             document.getElementById('options-container');
 
@@ -499,7 +680,8 @@
 
             btn.className = 'option-btn';
 
-            btn.innerText = `${index + 1}. ${option}`;
+            // 直接顯示 JSON 原本的選項，不額外編號
+            btn.innerText = option;
 
             btn.onclick = () =>
                 checkAnswer(index, q.answer, btn, q.options);
@@ -511,6 +693,50 @@
     }
 
 
+    // 星號收藏
+    function toggleStar() {
+
+        const q = activeQuestions[currentIndex];
+
+        if (starredQuestions.has(q)) {
+
+            starredQuestions.delete(q);
+
+        } else {
+
+            starredQuestions.add(q);
+
+        }
+
+        updateStarButton();
+
+    }
+
+
+    // 更新星號按鈕
+    function updateStarButton() {
+
+        const q = activeQuestions[currentIndex];
+
+        const btn = document.getElementById('star-btn');
+
+        if (starredQuestions.has(q)) {
+
+            btn.innerText = "★ 已收藏此題";
+
+            btn.classList.add('active');
+
+        } else {
+
+            btn.innerText = "☆ 收藏這題";
+
+            btn.classList.remove('active');
+
+        }
+
+    }
+
+
     // 檢查答案
     function checkAnswer(selected, correct, btn, options) {
 
@@ -518,12 +744,26 @@
             '#options-container button'
         );
 
-        // 禁止重複作答
+        // 防止重複作答
         buttons.forEach(b => b.disabled = true);
+
+        const q = activeQuestions[currentIndex];
 
         const resultEl = document.getElementById('result');
 
-        if (selected === correct) {
+        const isCorrect = selected === correct;
+
+        // 記錄作答結果
+        const record = {
+            question: q,
+            selected: selected,
+            correct: correct,
+            isCorrect: isCorrect
+        };
+
+        answeredQuestions.push(record);
+
+        if (isCorrect) {
 
             btn.classList.add('correct');
 
@@ -537,44 +777,248 @@
 
             btn.classList.add('wrong');
 
-            buttons[correct].classList.add('correct');
+            if (
+                Number.isInteger(correct) &&
+                buttons[correct]
+            ) {
+                buttons[correct].classList.add('correct');
+            }
 
-            resultEl.innerHTML =
-                `回答錯誤！<br>正確答案是：
-                <strong>${correct + 1}. ${options[correct]}</strong>`;
+            resultEl.innerText =
+                "回答錯誤！正確答案是：" +
+                (options[correct] ?? "答案資料異常");
 
             resultEl.style.color = "#c0392b";
 
+            wrongQuestions.push(record);
+
         }
 
-        // 三秒後自動進入下一題
-        setTimeout(() => {
+        // 作答完成後才開放下一題
+        const nextBtn = document.getElementById('next-btn');
 
-            currentIndex++;
+        nextBtn.disabled = false;
 
-            if (currentIndex < activeQuestions.length) {
+        if (currentIndex < activeQuestions.length - 1) {
 
-                showQuestion();
+            nextBtn.innerText = "下一題 ➜";
 
-            } else {
+        } else {
 
-                // 顯示測驗結果
-                document.getElementById('quiz-screen')
-                    .classList.add('hidden');
+            nextBtn.innerText = "完成測驗並查看結果";
 
-                document.getElementById('result-screen')
-                    .classList.remove('hidden');
+        }
 
-                document.getElementById('final-score').innerHTML =
-                    `你總共完成 ${activeQuestions.length} 道題目，<br>
-                    答對 <strong>${score}</strong> 題，
-                    正確率 <strong>
-                    ${Math.round((score / activeQuestions.length) * 100)}%
-                    </strong>。`;
+    }
+
+
+    // 手動進入下一題
+    function nextQuestion() {
+
+        const q = activeQuestions[currentIndex];
+
+        // 必須先完成作答
+        const hasAnswered = answeredQuestions.some(
+            record => record.question === q
+        );
+
+        if (!hasAnswered) {
+            alert('請先選擇答案，再進入下一題！');
+            return;
+        }
+
+        currentIndex++;
+
+        if (currentIndex < activeQuestions.length) {
+
+            showQuestion();
+
+        } else {
+
+            showFinalResult();
+
+        }
+
+    }
+
+
+    // 顯示測驗結算及複習
+    function showFinalResult() {
+
+        document.getElementById('quiz-screen')
+            .classList.add('hidden');
+
+        document.getElementById('result-screen')
+            .classList.remove('hidden');
+
+        const total = activeQuestions.length;
+
+        const percentage = Math.round(
+            (score / total) * 100
+        );
+
+        document.getElementById('final-score').innerHTML =
+            `本次測驗完成 <strong>${total}</strong> 題。<br>
+             答對 <strong>${score}</strong> 題。<br>
+             答錯 <strong>${wrongQuestions.length}</strong> 題。<br>
+             收藏 <strong>${starredQuestions.size}</strong> 題。<br>
+             正確率 <strong>${percentage}%</strong>。`;
+
+        // 顯示錯題
+        renderReview(
+            wrongQuestions,
+            'wrong-review',
+            '恭喜！本次測驗沒有答錯題目。'
+        );
+
+        // 顯示收藏題目
+        const starredRecords = answeredQuestions.filter(
+            record => starredQuestions.has(record.question)
+        );
+
+        renderReview(
+            starredRecords,
+            'star-review',
+            '本次沒有收藏任何題目。'
+        );
+
+    }
+
+
+    // 建立錯題與收藏題目的複習內容
+    function renderReview(records, containerId, emptyText) {
+
+        const container = document.getElementById(containerId);
+
+        container.innerHTML = "";
+
+        if (records.length === 0) {
+
+            const empty = document.createElement('p');
+
+            empty.className = 'empty-message';
+
+            empty.innerText = emptyText;
+
+            container.appendChild(empty);
+
+            return;
+
+        }
+
+        records.forEach((record, index) => {
+
+            const q = record.question;
+
+            const card = document.createElement('div');
+
+            card.className = 'review-card';
+
+            // 題目標題
+            const title = document.createElement('h4');
+
+            title.innerText =
+                `${index + 1}. ${q.category || q.chapter || ""} ${q.question}`;
+
+            card.appendChild(title);
+
+            // 所有選項
+            q.options.forEach((option, optionIndex) => {
+
+                const optionEl = document.createElement('div');
+
+                optionEl.className = 'review-option';
+
+                optionEl.innerText = option;
+
+                // 標示正確答案
+                if (optionIndex === record.correct) {
+
+                    optionEl.classList.add('review-correct');
+
+                    optionEl.innerText += "  ✓ 正確答案";
+
+                }
+
+                // 標示使用者選錯的答案
+                if (
+                    !record.isCorrect &&
+                    optionIndex === record.selected
+                ) {
+
+                    optionEl.classList.add('review-wrong');
+
+                    optionEl.innerText += "  ✗ 你的選擇";
+
+                }
+
+                card.appendChild(optionEl);
+
+            });
+
+            // 答題資訊
+            const info = document.createElement('div');
+
+            info.className = 'review-info';
+
+            const correctText =
+                q.options[record.correct] ?? "答案資料異常";
+
+            const selectedText =
+                q.options[record.selected] ?? "未作答";
+
+            info.innerHTML =
+                `<strong>你的答案：</strong>${escapeHTML(selectedText)}<br>
+                 <strong>正確答案：</strong>${escapeHTML(correctText)}<br>
+                 <strong>作答結果：</strong>
+                 ${record.isCorrect ? "答對" : "答錯"}`;
+
+            card.appendChild(info);
+
+            // 若題庫有解析欄位，則一併顯示
+            const explanation =
+                q.explanation ||
+                q.explain ||
+                q.analysis ||
+                q.解析;
+
+            if (explanation) {
+
+                const explanationEl = document.createElement('div');
+
+                explanationEl.className = 'explanation';
+
+                const explanationTitle = document.createElement('strong');
+
+                explanationTitle.innerText = "📖 題目解析：";
+
+                const explanationText = document.createElement('div');
+
+                explanationText.innerText = explanation;
+
+                explanationEl.appendChild(explanationTitle);
+
+                explanationEl.appendChild(explanationText);
+
+                card.appendChild(explanationEl);
 
             }
 
-        }, 3000);
+            container.appendChild(card);
+
+        });
+
+    }
+
+
+    // 避免將題目文字當成 HTML 執行
+    function escapeHTML(text) {
+
+        const div = document.createElement('div');
+
+        div.textContent = String(text);
+
+        return div.innerHTML;
 
     }
 
