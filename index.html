@@ -1,6 +1,7 @@
 
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -98,6 +99,8 @@
             background: #fff;
             text-align: left;
             transition: all 0.2s;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
 
         .option-btn:hover:not(:disabled) {
@@ -240,6 +243,7 @@
             border-radius: 5px;
             margin-top: 10px;
             line-height: 1.7;
+            white-space: pre-wrap;
         }
     </style>
 </head>
@@ -263,8 +267,13 @@
             </label>
 
             <select id="session-select" onchange="initChapterSelect()">
-                <option value="first">第一節考試（第一章～第四章）</option>
-                <option value="second">第二節考試（第五章～第十章）</option>
+                <option value="first">
+                    第一節考試（第一章～第四章）
+                </option>
+
+                <option value="second">
+                    第二節考試（第五章～第十章）
+                </option>
             </select>
         </div>
 
@@ -323,7 +332,6 @@
 
         <h2 id="question-title"></h2>
 
-        <!-- 星號收藏 -->
         <button
             id="star-btn"
             class="star-btn"
@@ -336,7 +344,6 @@
 
         <p id="result" class="result-message"></p>
 
-        <!-- 下一題按鈕 -->
         <button
             id="next-btn"
             class="btn next-btn"
@@ -349,20 +356,18 @@
     </div>
 
 
-    <!-- 3. 結算及複習畫面 -->
+    <!-- 3. 測驗結算及複習畫面 -->
     <div id="result-screen" class="hidden">
 
         <h2>🎉 測驗已全部完成！</h2>
 
         <div id="final-score" class="summary"></div>
 
-        <!-- 錯題複習 -->
         <div class="review-section">
             <h3>❌ 錯題複習</h3>
             <div id="wrong-review"></div>
         </div>
 
-        <!-- 星號收藏複習 -->
         <div class="review-section">
             <h3>⭐ 我的收藏題目</h3>
             <div id="star-review"></div>
@@ -388,18 +393,14 @@
     let currentIndex = 0;
     let score = 0;
 
-    // 記錄已作答的題目
     let answeredQuestions = [];
-
-    // 記錄錯題
     let wrongQuestions = [];
-
-    // 記錄星號收藏題目
     let starredQuestions = new Set();
 
 
     // 考試節次與章節對應
     const sessionChapters = {
+
         first: [
             "第一章",
             "第二章",
@@ -415,18 +416,23 @@
             "第九章",
             "第十章"
         ]
+
     };
 
 
     // 載入題庫
     fetch('questions.json')
+
         .then(response => {
+
             if (!response.ok) {
                 throw new Error("找不到 questions.json");
             }
 
             return response.json();
+
         })
+
         .then(data => {
 
             if (!Array.isArray(data)) {
@@ -440,6 +446,7 @@
             toggleCountGroup();
 
         })
+
         .catch(error => {
 
             console.error('讀取題庫失敗:', error);
@@ -519,8 +526,11 @@
     function startQuiz() {
 
         if (allQuestions.length === 0) {
+
             alert('題庫尚在載入中或沒有題目。');
+
             return;
+
         }
 
         const session =
@@ -560,8 +570,11 @@
         }
 
         if (filtered.length === 0) {
+
             alert('目前選擇的範圍沒有題目！');
+
             return;
+
         }
 
         // 隨機抽題
@@ -603,7 +616,7 @@
     }
 
 
-    // Fisher-Yates 隨機洗牌
+    // 隨機洗牌
     function shuffleArray(array) {
 
         const result = [...array];
@@ -637,6 +650,41 @@
     }
 
 
+    // 取得純題幹：移除題目中重複的選項文字
+    function getQuestionOnly(q) {
+
+        let questionText = String(q.question || "");
+
+        if (Array.isArray(q.options)) {
+
+            q.options.forEach(option => {
+
+                const optionText = String(option).trim();
+
+                if (optionText) {
+
+                    // 移除題幹中與選項完全相同的文字
+                    questionText = questionText
+                        .split(optionText)
+                        .join("");
+
+                }
+
+            });
+
+        }
+
+        // 清理多餘空白、空行及尾端標點
+        questionText = questionText
+            .replace(/[ \t]+\n/g, "\n")
+            .replace(/\n{2,}/g, "\n")
+            .trim();
+
+        return questionText;
+
+    }
+
+
     // 顯示目前題目
     function showQuestion() {
 
@@ -655,18 +703,17 @@
         document.getElementById('chapter-badge').innerText =
             `📂 ${categoryName}${originalId}`;
 
+        // 只顯示題幹，不顯示重複選項
         document.getElementById('question-title').innerText =
-            q.question;
+            getQuestionOnly(q);
 
         document.getElementById('result').innerText = "";
 
-        // 重設下一題按鈕
         const nextBtn = document.getElementById('next-btn');
 
         nextBtn.disabled = true;
         nextBtn.innerText = "請先作答";
 
-        // 更新星號狀態
         updateStarButton();
 
         const container =
@@ -674,13 +721,13 @@
 
         container.innerHTML = "";
 
+        // 顯示 JSON 原本的選項，不額外加編號
         q.options.forEach((option, index) => {
 
             const btn = document.createElement('button');
 
             btn.className = 'option-btn';
 
-            // 直接顯示 JSON 原本的選項，不額外編號
             btn.innerText = option;
 
             btn.onclick = () =>
@@ -753,7 +800,6 @@
 
         const isCorrect = selected === correct;
 
-        // 記錄作答結果
         const record = {
             question: q,
             selected: selected,
@@ -781,7 +827,9 @@
                 Number.isInteger(correct) &&
                 buttons[correct]
             ) {
+
                 buttons[correct].classList.add('correct');
+
             }
 
             resultEl.innerText =
@@ -817,14 +865,16 @@
 
         const q = activeQuestions[currentIndex];
 
-        // 必須先完成作答
         const hasAnswered = answeredQuestions.some(
             record => record.question === q
         );
 
         if (!hasAnswered) {
+
             alert('請先選擇答案，再進入下一題！');
+
             return;
+
         }
 
         currentIndex++;
@@ -842,7 +892,7 @@
     }
 
 
-    // 顯示測驗結算及複習
+    // 顯示測驗結果
     function showFinalResult() {
 
         document.getElementById('quiz-screen')
@@ -885,10 +935,11 @@
     }
 
 
-    // 建立錯題與收藏題目的複習內容
+    // 建立錯題及收藏題目的複習內容
     function renderReview(records, containerId, emptyText) {
 
-        const container = document.getElementById(containerId);
+        const container =
+            document.getElementById(containerId);
 
         container.innerHTML = "";
 
@@ -914,15 +965,15 @@
 
             card.className = 'review-card';
 
-            // 題目標題
+            // 複習區只顯示題幹
             const title = document.createElement('h4');
 
             title.innerText =
-                `${index + 1}. ${q.category || q.chapter || ""} ${q.question}`;
+                `${index + 1}. ${q.category || q.chapter || ""} ${getQuestionOnly(q)}`;
 
             card.appendChild(title);
 
-            // 所有選項
+            // 顯示所有選項
             q.options.forEach((option, optionIndex) => {
 
                 const optionEl = document.createElement('div');
@@ -975,7 +1026,7 @@
 
             card.appendChild(info);
 
-            // 若題庫有解析欄位，則一併顯示
+            // 題庫有解析才顯示
             const explanation =
                 q.explanation ||
                 q.explain ||
@@ -984,15 +1035,18 @@
 
             if (explanation) {
 
-                const explanationEl = document.createElement('div');
+                const explanationEl =
+                    document.createElement('div');
 
                 explanationEl.className = 'explanation';
 
-                const explanationTitle = document.createElement('strong');
+                const explanationTitle =
+                    document.createElement('strong');
 
                 explanationTitle.innerText = "📖 題目解析：";
 
-                const explanationText = document.createElement('div');
+                const explanationText =
+                    document.createElement('div');
 
                 explanationText.innerText = explanation;
 
@@ -1011,7 +1065,7 @@
     }
 
 
-    // 避免將題目文字當成 HTML 執行
+    // 避免題目文字被當成 HTML 執行
     function escapeHTML(text) {
 
         const div = document.createElement('div');
